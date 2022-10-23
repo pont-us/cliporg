@@ -23,6 +23,9 @@ def main():
         capture_output=True
     )
     pandoc = subprocess.run(
+        # pandoc makes some unnecessary string substitutions, e.g. "…" ->
+        # "...", but there seems to be no way to disable this as of
+        # 2022-10-23. See escapeString in Org.hs in pandoc source.
         ["pandoc", "--from=html", "--to=org", "--wrap=none"],
         input=xclip_in.stdout,
         check=True,
