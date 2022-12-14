@@ -12,16 +12,29 @@
 #
 # By Pontus Lurcock, 2022. Released into the public domain.
 
+import sys
 import subprocess
+import argparse
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Convert HTML clipboard contents to org-mode format"
+    )
+    parser.add_argument(
+        "-s", "--stdout",
+        help="Output to standard output, not clipboard",
+        action="store_true"
+    )
+    args = parser.parse_args()
+
     # Can't user pyperclip here, since it currently (2022-09-24) only
     # handles plain text.
     xclip_in = subprocess.run(
-        ["xclip", "-selection", "clipboard", "-target", "text/html", "-out"],
+        ["xclip", "-selection", "primary", "-target", "text/html", "-out"],
         check=True,
         capture_output=True
     )
+
     pandoc = subprocess.run(
         # pandoc makes some unnecessary string substitutions, e.g. "…" ->
         # "...", but there seems to be no way to disable this as of
@@ -31,7 +44,11 @@ def main():
         check=True,
         capture_output=True
     )
-    subprocess.run(
+
+    if args.stdout:
+        sys.stdout.write(pandoc.stdout.decode())
+    else:
+        subprocess.run(
         # "-loops 2" is specified because in practice (at least on my
         # system) something seems to read the clipboard as soon as it's
         # updated, so "-loops 2" is required to keep xclip running until
