@@ -15,6 +15,8 @@
 import sys
 import subprocess
 import argparse
+import tempfile
+import os
 
 def main():
     parser = argparse.ArgumentParser(
@@ -23,6 +25,11 @@ def main():
     parser.add_argument(
         "-s", "--stdout",
         help="Output to standard output, not clipboard",
+        action="store_true"
+    )
+    parser.add_argument(
+        "-r", "--remove-links",
+        help="Remove hyperlinks (i.e. turn them into normal text)",
         action="store_true"
     )
     args = parser.parse_args()
@@ -35,15 +42,27 @@ def main():
         capture_output=True
     )
 
-    pandoc = subprocess.run(
-        # pandoc makes some unnecessary string substitutions, e.g. "…" ->
-        # "...", but there seems to be no way to disable this as of
-        # 2022-10-23. See escapeString in Org.hs in pandoc source.
-        ["pandoc", "--from=html", "--to=org", "--wrap=none"],
-        input=xclip_in.stdout,
-        check=True,
-        capture_output=True
-    )
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pandoc_args = ["pandoc", "--from=html", "--to=org", "--wrap=none"]
+        if args.remove_links:
+            path = os.path.join(tmpdir, "filter.lua")
+            with open(path, "w") as fh:
+                fh.write(
+                    "function Link(el)\n"
+                    "    return el.content\n"
+                    "end\n"
+                )
+            pandoc_args.append("--lua-filter=" + path)
+
+        pandoc = subprocess.run(
+            # pandoc makes some unnecessary string substitutions, e.g. "…" ->
+            # "...", but there seems to be no way to disable this as of
+            # 2022-10-23. See escapeString in Org.hs in pandoc source.
+            pandoc_args,
+            input=xclip_in.stdout,
+            check=True,
+            capture_output=True
+        )
 
     if args.stdout:
         sys.stdout.write(pandoc.stdout.decode())
