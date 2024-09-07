@@ -17,6 +17,7 @@ import subprocess
 import argparse
 import tempfile
 import os
+import unicodedata
 
 def main():
     parser = argparse.ArgumentParser(
@@ -42,6 +43,11 @@ def main():
         capture_output=True
     )
 
+    # TODO: run xclip_in.stdout through bs4 to remove Wikipedia reference
+    #   links. They look like <sup id=cite_ref-foo-bar class=reference>
+    #   <a href=#cite_note-foo-bar>[3]</a></sup>
+    #   Unfortunately impossible in pandoc.
+
     with tempfile.TemporaryDirectory() as tmpdir:
         pandoc_args = ["pandoc", "--from=html", "--to=org", "--wrap=none"]
         if args.remove_links:
@@ -64,8 +70,10 @@ def main():
             capture_output=True
         )
 
+    result = unicodedata.normalize("NFC", pandoc.stdout.decode())
+
     if args.stdout:
-        sys.stdout.write(pandoc.stdout.decode())
+        sys.stdout.write(result)
     else:
         subprocess.run(
         # "-loops 2" is specified because in practice (at least on my
@@ -75,7 +83,7 @@ def main():
         ["xclip", "-target", "UTF8_STRING", "-in", "-verbose",
          "-selection", "clipboard", "-loops", "2"],
         check=True,
-        input=pandoc.stdout
+        input=result.encode()
     )
     
 
