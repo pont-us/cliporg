@@ -65,11 +65,22 @@ def main():
             # "...", but there seems to be no way to disable this as of
             # 2022-10-23. See escapeString in Org.hs in pandoc source.
             pandoc_args,
-            input=xclip_in.stdout,
+            # pandoc output sometimes seems to resist NFC normalization.
+            # I'm not sure why. See "Magaleña" in
+            # https://www.cervezavictoria.es/en/the-beer-of-malaga for
+            # an example. Applying NFC normalization before pandoc
+            # conversion seems to get around this.
+            input=unicodedata.normalize(
+                "NFC",
+                xclip_in.stdout.decode()
+            ).encode(),
             check=True,
             capture_output=True
         )
 
+    # A second NFC normalization is probably unnecessary, but no harm
+    # in applying it just in case something got denormalized in the
+    # pandoc conversion.
     result = unicodedata.normalize("NFC", pandoc.stdout.decode())
 
     if args.stdout:
