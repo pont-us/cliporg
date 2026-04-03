@@ -10,7 +10,7 @@
 #
 # Requires xclip and pandoc.
 #
-# By Pontus Lurcock, 2022. Released into the public domain.
+# By Pontus Lurcock, 2022-2026. Released into the public domain.
 
 import sys
 import subprocess
