@@ -19,19 +19,22 @@ import tempfile
 import os
 import unicodedata
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Convert HTML clipboard contents to org-mode format"
     )
     parser.add_argument(
-        "-s", "--stdout",
+        "-s",
+        "--stdout",
         help="Output to standard output, not clipboard",
-        action="store_true"
+        action="store_true",
     )
     parser.add_argument(
-        "-r", "--remove-links",
+        "-r",
+        "--remove-links",
         help="Remove hyperlinks (i.e. turn them into normal text)",
-        action="store_true"
+        action="store_true",
     )
     args = parser.parse_args()
 
@@ -40,7 +43,7 @@ def main():
     xclip_in = subprocess.run(
         ["xclip", "-selection", "primary", "-target", "text/html", "-out"],
         check=True,
-        capture_output=True
+        capture_output=True,
     )
 
     # TODO: run xclip_in.stdout through bs4 to remove Wikipedia reference
@@ -54,9 +57,7 @@ def main():
             path = os.path.join(tmpdir, "filter.lua")
             with open(path, "w") as fh:
                 fh.write(
-                    "function Link(el)\n"
-                    "    return el.content\n"
-                    "end\n"
+                    "function Link(el)\n" "    return el.content\n" "end\n"
                 )
             pandoc_args.append("--lua-filter=" + path)
 
@@ -71,35 +72,42 @@ def main():
             # an example. Applying NFC normalization before pandoc
             # conversion seems to get around this.
             input=unicodedata.normalize(
-                "NFC",
-                xclip_in.stdout.decode()
+                "NFC", xclip_in.stdout.decode()
             ).encode(),
             check=True,
-            capture_output=True
+            capture_output=True,
         )
 
     # A second NFC normalization is probably unnecessary, but no harm
     # in applying it just in case something got denormalized in the
     # pandoc conversion. In the same step, we remove soft hyphens.
-    result = (
-        unicodedata
-        .normalize("NFC", pandoc.stdout.decode())
-        .replace("\N{soft hyphen}", "")
+    result = unicodedata.normalize("NFC", pandoc.stdout.decode()).replace(
+        "\N{SOFT HYPHEN}", ""
     )
 
     if args.stdout:
         sys.stdout.write(result)
     else:
         subprocess.run(
-        # "-loops 2" is specified because in practice (at least on my
-        # system) something seems to read the clipboard as soon as it's
-        # updated, so "-loops 2" is required to keep xclip running until
-        # the user pastes from the clipboard.
-        ["xclip", "-target", "UTF8_STRING", "-in", "-verbose",
-         "-selection", "clipboard", "-loops", "2"],
-        check=True,
-        input=result.encode()
-    )
+            # "-loops 2" is specified because in practice (at least on my
+            # system) something seems to read the clipboard as soon as it's
+            # updated, so "-loops 2" is required to keep xclip running until
+            # the user pastes from the clipboard.
+            [
+                "xclip",
+                "-target",
+                "UTF8_STRING",
+                "-in",
+                "-verbose",
+                "-selection",
+                "clipboard",
+                "-loops",
+                "2",
+            ],
+            check=True,
+            input=result.encode(),
+        )
+
 
 if __name__ == "__main__":
     main()
