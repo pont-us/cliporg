@@ -80,8 +80,12 @@ def main():
 
     # A second NFC normalization is probably unnecessary, but no harm
     # in applying it just in case something got denormalized in the
-    # pandoc conversion.
-    result = unicodedata.normalize("NFC", pandoc.stdout.decode())
+    # pandoc conversion. In the same step, we remove soft hyphens.
+    result = (
+        unicodedata
+        .normalize("NFC", pandoc.stdout.decode())
+        .replace("\N{soft hyphen}", "")
+    )
 
     if args.stdout:
         sys.stdout.write(result)
@@ -96,7 +100,6 @@ def main():
         check=True,
         input=result.encode()
     )
-    
 
 if __name__ == "__main__":
     main()
